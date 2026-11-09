@@ -6,7 +6,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $env:COREPACK_ENABLE_DOWNLOAD_PROMPT = '0'
-$InstallDir = Join-Path $env:LOCALAPPDATA 'RingtoneSwitcherVencord'
+$InstallDir = $null
 $RepoUrl = 'https://github.com/Vendicated/Vencord.git'
 $PluginRepoUrl = 'https://github.com/Kukiv1272/Ringtone-Switcher-Vencord.git'
 $Common = Join-Path $PSScriptRoot 'installer-common.ps1'
@@ -26,13 +26,14 @@ function Step([string]$Name, [scriptblock]$Action) {
 
 if (-not (Test-Path -LiteralPath $Common -PathType Leaf)) { Fail 'installer-common.ps1 is missing. Extract the complete folder.' }
 . $Common
+$InstallDir = Resolve-RingtoneInstallDir
 
 Write-Host '==============================================================' -ForegroundColor Magenta
 Write-Host '   Ringtone Switcher - Vencord auto-update installer' -ForegroundColor Magenta
 Write-Host '==============================================================' -ForegroundColor Magenta
 Write-Host ''
 Write-Host "Vencord will be installed into: $InstallDir" -ForegroundColor Yellow
-Write-Host 'The installer builds Vencord from source with Ringtone Switcher included.' -ForegroundColor Yellow
+Write-Host 'The installer reuses an existing Vencord checkout so other userplugins stay enabled.' -ForegroundColor Yellow
 Write-Host ''
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Fail 'Git is required. Install Git for Windows and run this installer again.' }

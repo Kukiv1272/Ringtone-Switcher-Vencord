@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Continue'
-$InstallDir = Join-Path $env:LOCALAPPDATA 'RingtoneSwitcherVencord'
+$InstallDir = $null
 $Common = Join-Path $PSScriptRoot 'installer-common.ps1'
 
 function Fail($m) {
@@ -10,6 +10,7 @@ function Fail($m) {
 
 if (-not (Test-Path -LiteralPath $Common -PathType Leaf)) { Fail 'installer-common.ps1 is missing. Extract the complete folder.' }
 . $Common
+$InstallDir = Resolve-RingtoneInstallDir
 
 Write-Host '==============================================================' -ForegroundColor Magenta
 Write-Host '   Ringtone Switcher - Vencord uninstaller' -ForegroundColor Magenta

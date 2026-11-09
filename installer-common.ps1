@@ -16,6 +16,26 @@ function Get-DiscordRoot([string]$Branch) {
     Join-Path $env:LOCALAPPDATA (Get-DiscordInfo $Branch).Directory
 }
 
+function Resolve-RingtoneInstallDir {
+    param([string]$PreferredPath)
+
+    $candidates = @()
+    if ($PreferredPath) { $candidates += $PreferredPath }
+    if ($env:VENCORD_INSTALL_DIR) { $candidates += $env:VENCORD_INSTALL_DIR }
+    $candidates += (Join-Path $env:LOCALAPPDATA 'OrionVencord')
+    $candidates += (Join-Path $env:LOCALAPPDATA 'RingtoneSwitcherVencord')
+
+    foreach ($candidate in $candidates) {
+        if ((Test-Path -LiteralPath (Join-Path $candidate '.git') -PathType Container) -and
+            (Test-Path -LiteralPath (Join-Path $candidate 'package.json') -PathType Leaf) -and
+            (Test-Path -LiteralPath (Join-Path $candidate 'src') -PathType Container)) {
+            return $candidate
+        }
+    }
+
+    return (Join-Path $env:LOCALAPPDATA 'RingtoneSwitcherVencord')
+}
+
 function Select-DiscordResources([string]$Root) {
     $apps = @(Get-ChildItem -LiteralPath $Root -Directory -ErrorAction SilentlyContinue |
         Where-Object {

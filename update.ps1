@@ -3,7 +3,7 @@ param([switch]$SkipRestart)
 
 $ErrorActionPreference = 'Stop'
 $env:COREPACK_ENABLE_DOWNLOAD_PROMPT = '0'
-$InstallDir = Join-Path $env:LOCALAPPDATA 'RingtoneSwitcherVencord'
+$InstallDir = $null
 $PluginRepoUrl = 'https://github.com/Kukiv1272/Ringtone-Switcher-Vencord.git'
 $Common = Join-Path $PSScriptRoot 'installer-common.ps1'
 
@@ -22,6 +22,7 @@ function Step([string]$Name, [scriptblock]$Action) {
 
 if (-not (Test-Path -LiteralPath $Common -PathType Leaf)) { Fail 'installer-common.ps1 is missing. Extract the complete folder.' }
 . $Common
+$InstallDir = Resolve-RingtoneInstallDir
 if (-not (Test-Path -LiteralPath (Join-Path $InstallDir '.git') -PathType Container)) {
     Fail "No Ringtone Switcher installation found at $InstallDir. Run INSTALL-autoupdate.cmd first."
 }

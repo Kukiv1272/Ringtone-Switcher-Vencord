@@ -31,13 +31,15 @@ Ringtone-Switcher-Vencord/
     └── ringtones.ts
 ```
 
-Установщик хранит отдельный клон Vencord в:
+Установщик хранит или переиспользует клон Vencord в:
 
 ```text
-%LOCALAPPDATA%\RingtoneSwitcherVencord
+%LOCALAPPDATA%\OrionVencord
 ```
 
-Исходная папка Vencord пользователя не изменяется.
+Если `OrionVencord` уже существует, он используется повторно. Это сохраняет
+уже установленные userplugins, включая Orion Quests и Quest UI. Если такого
+клона нет, создаётся `%LOCALAPPDATA%\RingtoneSwitcherVencord`.
 
 ## Установка Windows
 
@@ -99,13 +101,15 @@ UPDATE.cmd
 2. Скрипт закроет Discord и восстановит оригинальный `app.asar`.
 3. Discord будет запущен снова, если он был запущен до удаления.
 
-После успешного удаления можно вручную удалить:
+Если в сборке нет других нужных userplugins, после успешного удаления можно
+вручную удалить:
 
 ```text
 %LOCALAPPDATA%\RingtoneSwitcherVencord
 ```
 
-Node.js и Git установщик не удаляет.
+Если используется существующий `OrionVencord`, не удаляй его: в нём могут
+находиться другие плагины. Node.js и Git установщик не удаляет.
 
 ## Ручная установка плагина
 
@@ -127,8 +131,9 @@ pnpm inject
 ## Важные замечания
 
 - Discord должен быть закрыт во время внедрения и удаления.
-- Не удаляй `%LOCALAPPDATA%\RingtoneSwitcherVencord`, пока Vencord
-  внедрён в Discord. Сначала запусти `UNINSTALL.cmd`.
+- Не удаляй `%LOCALAPPDATA%\OrionVencord` или
+  `%LOCALAPPDATA%\RingtoneSwitcherVencord`, пока Vencord внедрён в Discord.
+  Сначала запусти `UNINSTALL.cmd`.
 - При ошибке сборки установщик не должен оставлять непроверенную новую сборку.
 - Если Discord не запускается после неудачного обновления, используй
   официальный установщик Vencord и выбери Repair.
