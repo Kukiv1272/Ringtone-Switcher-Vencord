@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Continue'
+$ErrorActionPreference = 'Stop'
 $InstallDir = $null
 $Common = Join-Path $PSScriptRoot 'installer-common.ps1'
 
@@ -16,41 +16,54 @@ Write-Host '==============================================================' -For
 Write-Host '   Ringtone Switcher - Vencord uninstaller' -ForegroundColor Magenta
 Write-Host '==============================================================' -ForegroundColor Magenta
 Write-Host ''
-Write-Host 'Discord will be closed while its original app.asar is restored.' -ForegroundColor Yellow
+Write-Host 'Only RingtoneSwitcher will be removed. Other Vencord plugins will be preserved.' -ForegroundColor Yellow
+
+$pluginDir = Join-Path $InstallDir 'src\userplugins\ringtoneSwitcher'
+if (-not (Test-Path -LiteralPath $pluginDir -PathType Container)) {
+    Write-Host 'RingtoneSwitcher is not installed in this Vencord checkout.' -ForegroundColor Yellow
+    try { Read-Host 'Press Enter to close' } catch {}
+    exit 0
+}
+
+$otherPlugins = @(Get-ChildItem -LiteralPath (Split-Path -Parent $pluginDir) -Directory -ErrorAction SilentlyContinue |
+    Where-Object { $_.Name -ne 'ringtoneSwitcher' } | Select-Object -ExpandProperty Name)
+if ($otherPlugins.Count -gt 0) {
+    Write-Host "Preserving plugins: $($otherPlugins -join ', ')" -ForegroundColor Cyan
+}
 
 $runningBefore = @(Get-RunningDiscordFlavors)
 try { Stop-DiscordClients } catch { Fail $_.Exception.Message }
 
-$restored = 0
-$failed = @()
-$patcher = Join-Path $InstallDir 'dist\patcher.js'
-foreach ($branch in @('stable','canary','ptb')) {
-    $asar = Get-CurrentAppAsar $branch
-    if (-not $asar) { continue }
-    if (-not (Test-Patched $asar $patcher)) { continue }
-    if (Restore-AppAsar $asar $patcher) { $restored++ } else { $failed += $branch }
-}
+$backup = Join-Path ([IO.Path]::GetTempPath()) ("ringtone-switcher-uninstall-" + [guid]::NewGuid().ToString('N'))
+try {
+    Copy-Item -LiteralPath $pluginDir -Destination $backup -Recurse -Force
+    Remove-Item -LiteralPath $pluginDir -Recurse -Force
 
-if ($failed.Count -gt 0) {
-    Write-Host "Could not safely restore: $($failed -join ', ')." -ForegroundColor Red
-    Write-Host 'Discord was left closed. Run the official Vencord installer and choose Repair before reopening it.' -ForegroundColor Red
+    Write-Host 'Rebuilding Vencord without RingtoneSwitcher...' -ForegroundColor Cyan
+    Invoke-Pnpm $InstallDir @('install')
+    Invoke-Pnpm $InstallDir @('run','build')
+
+    $target = Resolve-DiscordBranch @(Get-InstalledDiscordFlavors) $runningBefore $null
+    Push-Location $InstallDir
+    try { node scripts\runInstaller.mjs -- --install -branch $target } finally { Pop-Location }
+
+    Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host 'RingtoneSwitcher removed. Other plugins were preserved.' -ForegroundColor Green
+} catch {
+    Write-Host "Uninstall failed: $($_.Exception.Message)" -ForegroundColor Red
+    if (-not (Test-Path -LiteralPath $pluginDir) -and (Test-Path -LiteralPath $backup)) {
+        Copy-Item -LiteralPath $backup -Destination $pluginDir -Recurse -Force
+        Write-Host 'RingtoneSwitcher source was restored after the failed operation.' -ForegroundColor Yellow
+    }
+    try { Start-DiscordClients $runningBefore } catch {}
     try { Read-Host 'Press Enter to close' } catch {}
     exit 1
+} finally {
+    if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
-if ($restored -gt 0) {
-    Write-Host "Discord restored. Recovered $restored installation(s)." -ForegroundColor Green
-} else {
-    Write-Host 'No Ringtone Switcher patch was found. Discord was already clean.' -ForegroundColor Green
-}
-
-$failedStart = @()
-try { $failedStart = @(Start-DiscordClients $runningBefore) } catch { $failedStart = $runningBefore }
-if ($failedStart.Count -gt 0) {
-    Write-Host "Start these Discord clients manually: $($failedStart -join ', ')." -ForegroundColor Yellow
-}
-
+try { Start-DiscordClients $runningBefore } catch {}
 Write-Host ''
-Write-Host "The managed Vencord folder can now be deleted manually: $InstallDir" -ForegroundColor DarkGray
-Write-Host 'Node.js and Git were not removed.' -ForegroundColor DarkGray
+Write-Host "Vencord remains installed at: $InstallDir" -ForegroundColor DarkGray
+Write-Host 'Node.js, Git and other userplugins were not removed.' -ForegroundColor DarkGray
 try { Read-Host 'Press Enter to close' } catch {}
